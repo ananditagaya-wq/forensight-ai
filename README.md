@@ -289,19 +289,6 @@ The workflow performs the following steps:
 - The project source code has been pushed to the GitHub repository.
 - Remote application deployment is the next stage of the project.
 
-## Screenshots and deployment evidence
-
-The following evidence will be added as the corresponding stages are completed:
-
-- [Screenshot placeholder: ForenSight dashboard]
-- [Screenshot placeholder: experimental prediction interface]
-- [Screenshot placeholder: Swagger /docs]
-- [Screenshot placeholder: MLflow experiment comparison]
-- [Screenshot placeholder: pytest output]
-- [Screenshot placeholder: successful GitHub Actions workflow]
-- [Screenshot placeholder: Docker build and container health]
-- [Deployment placeholder: live application URL pending deployment]
-
 ## Limitations and future work
 
 The synthetic generator encodes assumed relationships, and the model learns those generated labels rather than verified contamination outcomes. The reported holdout results are exploratory, come from a single split also used for configuration selection, and must not be interpreted as forensic accuracy. The rule-based score is still preliminary and separate. A future study would need accessible, ethically and legally governed forensic data with verified outcome labels, group-aware independent evaluation, expert review, and documented deployment monitoring before any real-world claims.
