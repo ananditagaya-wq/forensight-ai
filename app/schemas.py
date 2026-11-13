@@ -1,0 +1,68 @@
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+EvidenceType = Literal[
+    "Biological",
+    "Trace",
+    "Digital",
+    "Firearms",
+    "Document",
+    "Other",
+]
+
+
+class Credentials(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    email: EmailStr
+    password: str = Field(min_length=12, max_length=128)
+
+
+class SignupRequest(Credentials):
+    full_name: str = Field(min_length=2, max_length=100)
+
+
+class AssessmentRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    evidence_ref: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9._/-]+$")
+    evidence_type: EvidenceType
+    collection_conditions: Literal["controlled", "challenging", "unknown"]
+    ppe_compliant: bool
+    tool_condition: Literal["clean", "compromised", "unknown"]
+    packaging_condition: Literal["intact", "compromised", "unknown"]
+    storage_condition: Literal["controlled", "uncontrolled", "unknown"]
+    separately_packaged: bool
+    chain_of_custody_documented: bool
+
+    @field_validator("evidence_ref")
+    @classmethod
+    def evidence_ref_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Evidence reference is required.")
+        return value
+
+
+class UserResponse(BaseModel):
+    id: int
+    full_name: str
+    email: EmailStr
+
+
+class AssessmentResponse(BaseModel):
+    id: int
+    evidence_ref: str
+    evidence_type: str
+    collection_conditions: str
+    ppe_compliant: bool
+    tool_condition: str
+    packaging_condition: str
+    storage_condition: str
+    separately_packaged: bool
+    chain_of_custody_documented: bool
+    risk_category: str
+    risk_score: int
+    risk_factors: list[str]
+    recommendations: list[str]
+    created_at: str
