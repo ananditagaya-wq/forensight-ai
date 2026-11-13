@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
+import json
 
 from fastapi.testclient import TestClient
+import pytest
 
+from app import database
+from app.main import app
 
 def csrf_headers(client):
     response = client.get("/api/auth/csrf")
@@ -47,6 +51,17 @@ def test_dashboard_analytics_are_empty_without_saved_assessments(client):
     assert all(indicator["count"] == 0 for indicator in dashboard["indicators"])
     assert dashboard["monthly_trend"] == []
     assert dashboard["high_risk_assessments"] == []
+    assert len(dashboard["model_comparison"]) == 4
+    assert {run["algorithm"] for run in dashboard["model_comparison"]} == {
+        "Logistic Regression",
+        "Decision Tree",
+    }
+    selected_run = next(
+        run for run in dashboard["model_comparison"] if run["selected"]
+    )
+    assert selected_run["algorithm"] == "Decision Tree"
+    assert sum(map(sum, selected_run["confusion_matrix"]["counts"])) == 375
+    assert len(selected_run["class_metrics"]) == 2
     assert dashboard["model_evaluation"]["status"] == "experimental"
     assert dashboard["model_evaluation"]["dataset_type"] == "synthetic"
     assert dashboard["model_evaluation"]["accuracy"] is not None
@@ -249,6 +264,117 @@ def test_rejects_bad_credentials_validation_and_missing_csrf(client):
     assert login.status_code == 401
     duplicate = signup(client)
     assert duplicate.status_code == 409
+
+
+def test_health_and_existing_web_interface_load(client):
+    health = client.get("/health")
+    interface = client.get("/")
+
+    assert health.status_code == 200
+    assert health.json()["status"] == "ok"
+    assert health.json()["experimental_model_loaded"] is True
+    assert interface.status_code == 200
+    assert "ForenSight AI" in interface.text
+    assert client.get("/docs").status_code == 200
+
+
+def test_prediction_is_authenticated_validated_and_logged(client, tmp_path, monkeypatch):
+    from app import prediction_routes
+
+    log_path = tmp_path / "logs" / "predictions.jsonl"
+    monkeypatch.setattr(prediction_routes, "PREDICTION_LOG_PATH", log_path)
+    assert signup(client).status_code == 201
+    request_data = {
+        "evidence_type": "Trace",
+        "collection_conditions": "controlled",
+        "ppe_compliant": True,
+        "tool_condition": "clean",
+        "packaging_condition": "intact",
+        "storage_condition": "controlled",
+        "separately_packaged": True,
+        "chain_of_custody_documented": True,
+    }
+
+    response = client.post(
+        "/predict",
+        headers=csrf_headers(client),
+        json=request_data,
+    )
+    result = response.json()
+
+    assert response.status_code == 200
+    assert result["prediction"] in {"synthetic_lower_risk", "synthetic_higher_risk"}
+    assert result["dataset_type"] == "synthetic"
+    assert "not a validated forensic model" in result["disclaimer"]
+    assert sum(result["class_probabilities"].values()) == pytest.approx(1.0)
+    assert log_path.is_file()
+    entry = json.loads(log_path.read_text(encoding="utf-8").splitlines()[0])
+    assert entry["features"] == request_data
+    assert "timestamp" in entry
+    assert "analyst@example.org" not in log_path.read_text(encoding="utf-8")
+
+    invalid_requests = [
+        {**request_data, "evidence_type": "unknown-kind"},
+        {key: value for key, value in request_data.items() if key != "storage_condition"},
+        {**request_data, "ppe_compliant": "true"},
+        {**request_data, "extra_field": "not-allowed"},
+    ]
+    for invalid_request in invalid_requests:
+        rejected = client.post(
+            "/predict",
+            headers=csrf_headers(client),
+            json=invalid_request,
+        )
+        assert rejected.status_code == 422
+    assert len(log_path.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_prediction_endpoint_requires_auth_and_handles_missing_model(client):
+    request_data = {
+        "evidence_type": "Trace",
+        "collection_conditions": "controlled",
+        "ppe_compliant": True,
+        "tool_condition": "clean",
+        "packaging_condition": "intact",
+        "storage_condition": "controlled",
+        "separately_packaged": True,
+        "chain_of_custody_documented": True,
+    }
+    unauthorized = client.post(
+        "/predict",
+        headers=csrf_headers(client),
+        json=request_data,
+    )
+    assert unauthorized.status_code == 401
+
+    assert signup(client).status_code == 201
+    client.app.state.model_artifact = None
+    unavailable = client.post(
+        "/predict",
+        headers=csrf_headers(client),
+        json=request_data,
+    )
+    assert unavailable.status_code == 503
+
+
+def test_experimental_model_is_loaded_once_during_application_startup(
+    tmp_path, monkeypatch
+):
+    import app.main as main_module
+
+    monkeypatch.setattr(database, "DATABASE_PATH", tmp_path / "startup.sqlite3")
+    load_count = 0
+
+    def fake_load():
+        nonlocal load_count
+        load_count += 1
+        return {"test_model": True}
+
+    monkeypatch.setattr(main_module, "load_model_artifact", fake_load)
+    with TestClient(app) as test_client:
+        assert test_client.get("/health").json()["experimental_model_loaded"] is True
+        assert test_client.get("/health").json()["experimental_model_loaded"] is True
+        assert load_count == 1
 
 
 def test_assessment_reference_cannot_be_reused(client):

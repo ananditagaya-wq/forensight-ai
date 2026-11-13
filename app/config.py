@@ -19,3 +19,9 @@ COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").strip().lower() == "true"
 DATABASE_PATH = Path(
     os.getenv("DATABASE_PATH", str(PROJECT_ROOT / "data" / "forensight.sqlite3"))
 ).expanduser()
+PREDICTION_LOG_PATH = Path(
+    os.getenv(
+        "PREDICTION_LOG_PATH",
+        str(PROJECT_ROOT / "data" / "prediction_logs.jsonl"),
+    )
+).expanduser()

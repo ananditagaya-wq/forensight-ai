@@ -1,4 +1,3 @@
-import csv
 from typing import Mapping, Sequence
 
 from sklearn.linear_model import LogisticRegression
@@ -10,12 +9,17 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
 )
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
+from app.services.ml_experiments import (
+    DatasetValidationError,
+    grouped_stratified_split,
+    load_synthetic_records,
+    normalize_features,
+    normalize_row,
+)
 from app.services.synthetic_dataset import (
-    DATASET_PATH,
     DATASET_SOURCE,
     FEATURE_COLUMNS,
     OUTCOME_COLUMN,
@@ -25,76 +29,14 @@ from app.services.synthetic_dataset import (
 RANDOM_STATE = 42
 TEST_SIZE = 0.25
 
-_CATEGORICAL_FEATURES = {
-    "evidence_type": {
-        "biological",
-        "trace",
-        "digital",
-        "firearms",
-        "document",
-        "other",
-    },
-    "collection_conditions": {"controlled", "challenging", "unknown"},
-    "tool_condition": {"clean", "compromised", "unknown"},
-    "packaging_condition": {"intact", "compromised", "unknown"},
-    "storage_condition": {"controlled", "uncontrolled", "unknown"},
-}
-_BOOLEAN_FEATURES = {
-    "ppe_compliant",
-    "separately_packaged",
-    "chain_of_custody_documented",
-}
-
-
-class DatasetValidationError(ValueError):
-    """Raised when a labeled dataset is not suitable for this experiment."""
-
-
-def _normalize_boolean(value: object, row_number: int, column: str) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    normalized = str(value).strip().lower()
-    if normalized in {"true", "1"}:
-        return "true"
-    if normalized in {"false", "0"}:
-        return "false"
-    raise DatasetValidationError(
-        f"Row {row_number}: {column} must be true or false."
-    )
-
-
-def _normalize_features(
-    record: Mapping[str, object], row_number: int
-) -> list[str]:
-    values: list[str] = []
-    for column in FEATURE_COLUMNS:
-        value = record.get(column)
-        if value is None or not str(value).strip():
-            raise DatasetValidationError(
-                f"Row {row_number}: missing value for {column}."
-            )
-        normalized = str(value).strip().lower()
-        if column in _BOOLEAN_FEATURES:
-            normalized = _normalize_boolean(value, row_number, column)
-        elif normalized not in _CATEGORICAL_FEATURES[column]:
-            raise DatasetValidationError(
-                f"Row {row_number}: unsupported value for {column}."
-            )
-        values.append(normalized)
-    return values
-
-
-def _normalize_row(
-    record: Mapping[str, object], row_number: int
-) -> tuple[list[str], str]:
-    values = _normalize_features(record, row_number)
-    outcome = str(record.get(OUTCOME_COLUMN, "")).strip()
-    if outcome not in OUTCOME_LABELS:
-        raise DatasetValidationError(
-            f"Row {row_number}: {OUTCOME_COLUMN} must be one of "
-            f"{', '.join(sorted(OUTCOME_LABELS))}."
-        )
-    return values, outcome
+__all__ = [
+    "DatasetValidationError",
+    "FEATURE_COLUMNS",
+    "LogisticRegressionExperiment",
+    "OUTCOME_COLUMN",
+    "OUTCOME_LABELS",
+    "get_model_evaluation",
+]
 
 
 class LogisticRegressionExperiment:
@@ -116,7 +58,7 @@ class LogisticRegressionExperiment:
             raise DatasetValidationError("The dataset contains no labeled records.")
 
         normalized = [
-            _normalize_row(record, row_number)
+            normalize_row(record, row_number)
             for row_number, record in enumerate(records, start=2)
         ]
         features = [row[0] for row in normalized]
@@ -133,13 +75,8 @@ class LogisticRegressionExperiment:
                 "are required for a stratified holdout split."
             )
 
-        train_indices, test_indices = (
-            train_test_split(
-                list(range(len(records))),
-                test_size=TEST_SIZE,
-                random_state=RANDOM_STATE,
-                stratify=outcomes,
-            )
+        train_indices, test_indices = grouped_stratified_split(
+            features, outcomes, random_state=RANDOM_STATE, n_splits=round(1 / TEST_SIZE)
         )
         self.training_indices = tuple(train_indices)
         self.testing_indices = tuple(test_indices)
@@ -236,7 +173,7 @@ class LogisticRegressionExperiment:
     def predict(self, features: Mapping[str, object]) -> dict[str, object]:
         if self.pipeline is None:
             raise RuntimeError("Train the experiment with labeled data before prediction.")
-        normalized = _normalize_features(features, 1)
+        normalized = normalize_features(features, 1)
         probabilities = self.pipeline.predict_proba([normalized])[0]
         prediction = str(self.pipeline.predict([normalized])[0])
         return {
@@ -250,15 +187,5 @@ class LogisticRegressionExperiment:
 
 def get_model_evaluation() -> dict:
     """Train and evaluate only on the bundled, reproducible synthetic dataset."""
-    with DATASET_PATH.open("r", encoding="utf-8-sig", newline="") as dataset_file:
-        reader = csv.DictReader(dataset_file)
-        if reader.fieldnames is None:
-            raise DatasetValidationError("The synthetic dataset has no CSV header.")
-        required_columns = {*FEATURE_COLUMNS, OUTCOME_COLUMN}
-        missing_columns = required_columns.difference(reader.fieldnames)
-        if missing_columns:
-            raise DatasetValidationError(
-                f"Missing required columns: {', '.join(sorted(missing_columns))}."
-            )
-        records = list(reader)
+    records = load_synthetic_records()
     return LogisticRegressionExperiment().train_and_evaluate(records)

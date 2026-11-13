@@ -1,122 +1,419 @@
 # ForenSight AI
 
-ForenSight AI is a local-first forensic evidence handling risk assessment and
-recordkeeping foundation. It records handling conditions, highlights possible
-risk indicators, and preserves assessments in SQLite.
+ForenSight AI is a local-first workspace for recording forensic evidence
+handling conditions, reviewing preliminary contamination-risk indicators, and
+maintaining assessment history. Its rule-based assessment remains the primary
+screening mechanism. A separate experimental classification module demonstrates
+model training, tracking, serialization, and authenticated predictions.
 
-> **Assessment limitation:** scores are preliminary, transparent rule-based
-> screening only. They are not a trained AI model, do not establish that
-> contamination occurred, and are not a substitute for forensic judgment or
-> laboratory procedures.
+> **Important limitation:** the machine-learning dataset and its labels are
+> synthetic. Neither the rule-based score nor the experimental output confirms
+> that contamination occurred. This project is not a validated forensic
+> decision system and does not measure real-world contamination detection.
 
-## Requirements
+## Architecture
 
-- Python 3.11 or newer
-- pip
+- `app/main.py` starts FastAPI, initializes the existing SQLite database,
+  loads the selected experimental artifact once during application startup,
+  and serves the existing `frontend/` interface.
 
-## Setup
+- `app.py` provides a root-level application entry point by importing the
+  FastAPI application from `app.main`.
+- `static/index.html` provides a lightweight redirect to the main application
+  interface. The actual frontend is served from `frontend/`.
+- `app/routes.py` contains the existing authenticated assessment, history, and
+  dashboard APIs. The application database schema and assessment workflow are
+  unchanged.
+- `app/prediction_routes.py` exposes an authenticated, validated `POST /predict`
+  endpoint separate from the rule-based assessment endpoints.
+- `app/services/risk_assessment.py` contains the primary preliminary
+  rule-based assessment service.
+- `app/services/synthetic_dataset.py` contains the reproducible synthetic
+  feature and outcome generator.
+- `app/services/ml_experiments.py` validates data, normalizes features, and
+  creates a grouped stratified split that keeps repeated feature profiles on
+  one side of the train/test boundary.
+- `train.py` compares Logistic Regression and Decision Tree configurations,
+  logs results to MLflow, writes the comparison CSV, and serializes the
+  selected pipeline.
+- `app/services/model_runtime.py` loads and invokes the selected artifact.
+- `app/services/prediction_logging.py` writes prediction inputs to JSON Lines.
+- `app/services/check_drift.py` compares logged feature distributions with the
+  synthetic training set.
+- `frontend/` contains the existing responsive HTML, CSS, and vanilla
+  JavaScript interface.
 
-From the project directory, create and activate a virtual environment:
+## Dataset and outcome contract
+
+Every target value is simulated. The labels are not observations from an external
+forensic dataset, verified laboratory outcomes, or labels derived from the
+rule-based assessment score.
+
+The target distribution is:
+
+| Target value | Records | Share |
+| --- | ---: | ---: |
+| `synthetic_lower_risk` | 995 | 66.3% |
+| `synthetic_higher_risk` | 505 | 33.7% |
+
+
+
+| Feature / target | Type | Allowed values / generation range | Why it matters |
+| --- | --- | --- | --- |
+| `evidence_type` | Categorical string | `Biological`, `Trace`, `Digital`, `Firearms`, `Document`, `Other` | Identifies the category of evidence being assessed. |
+| `collection_conditions` | Categorical string | `controlled`, `challenging`, `unknown` | Records whether collection conditions were controlled or potentially challenging. |
+| `ppe_compliant` | Boolean | `true`, `false` | Indicates whether appropriate personal protective equipment compliance was confirmed. |
+| `tool_condition` | Categorical string | `clean`, `compromised`, `unknown` | Records the condition of tools used during evidence collection. |
+| `packaging_condition` | Categorical string | `intact`, `compromised`, `unknown` | Describes whether the primary evidence packaging is intact or potentially compromised. |
+| `storage_condition` | Categorical string | `controlled`, `uncontrolled`, `unknown` | Records whether evidence storage conditions were controlled. |
+| `separately_packaged` | Boolean | `true`, `false` | Indicates whether evidence was packaged separately to reduce possible contact or transfer. |
+| `chain_of_custody_documented` | Boolean | `true`, `false` | Indicates whether evidence transfers and custody documentation are recorded. |
+| `synthetic_outcome` | Classification target | `synthetic_lower_risk`, `synthetic_higher_risk` | Synthetic classification label used for supervised model training and evaluation; not an observed forensic outcome. |
+
+
+The prediction API requires all eight input fields. Missing fields, unsupported
+categorical values, non-boolean values for boolean fields, and unexpected
+additional fields are rejected with HTTP 422. No numerical ranges apply because
+the contract contains no numerical feature.
+
+### Synthetic data-generation process
+
+The generator samples each feature using fixed categorical probabilities:
+
+- Evidence type: Biological 22%, Trace 19%, Digital 16%, Firearms 14%,
+  Document 13%, Other 16%.
+- Collection conditions: controlled 70%, challenging 22%, unknown 8%.
+- PPE compliance: true 84%.
+- Tool condition: clean 76%, compromised 18%, unknown 6%.
+- Packaging condition: intact 78%, compromised 16%, unknown 6%.
+- Storage condition: controlled 70%, uncontrolled 24%, unknown 6%.
+- Separate packaging: true 78%.
+- Chain-of-custody documentation: true 82%.
+
+For each sampled record, the generator forms a simulated log-odds value `eta`
+starting at `-2.0`. It adds evidence-type offsets (Biological `+0.25`, Trace
+`+0.10`, Digital `-0.25`, Firearms `+0.15`, Document `-0.15`, Other `0`);
+challenging/unknown collection offsets `+0.75`/`+0.35`; PPE non-compliance
+`+0.70`; compromised/unknown tool offsets `+0.80`/`+0.30`; compromised/unknown
+packaging offsets `+0.75`/`+0.30`; uncontrolled/unknown storage offsets
+`+0.70`/`+0.25`; no separate packaging `+0.70`; and incomplete custody
+documentation `+0.65`. The generator adds `+0.30` for challenging collection
+with non-compliant PPE and `+0.35` for compromised packaging without separate
+packaging. It samples a binary outcome from
+`p = 1 / (1 + exp(-eta))`, then independently flips the label with probability
+`0.08`.
+
+These are explicit simulation assumptions, not empirically estimated effects.
+The label-generation equation is independent from the rule-based scoring
+service.
+
+Regenerate the same CSV with:
+
+```powershell
+python -m app.services.synthetic_dataset
+```
+
+## Local setup
+
+Requirements: Python 3.11 and pip.
 
 ```powershell
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-```
-
-Generate a secret and place it in `.env` as `JWT_SECRET_KEY`:
-
-```powershell
 python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
-For local HTTP development, keep `COOKIE_SECURE=false`. Set it to `true` when
-serving the application behind HTTPS. Then start the server:
+Put the generated value in `.env` as `JWT_SECRET_KEY`. Do not commit `.env`.
+Use `COOKIE_SECURE=false` for local HTTP development; set it to `true` behind
+HTTPS. Start the application from the project root:
 
 ```powershell
 python -m uvicorn app.main:app --reload
 ```
 
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000). API documentation is
-available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
-SQLite data is created at `data/forensight.sqlite3` by default; override it
-with `DATABASE_PATH`.
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). FastAPI Swagger docs are
+at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). The SQLite
+application database defaults to `data/forensight.sqlite3`; `DATABASE_PATH`
+can override it.
 
-## Tests
+## Model experiments, evaluation, and selection
+
+The only trained algorithms are **Logistic Regression** and **Decision Tree**.
+Both use a scikit-learn pipeline with `OneHotEncoder(handle_unknown="ignore")`;
+the encoder is fitted only on training rows. No numeric scaler is needed for
+these categorical and boolean inputs. Both estimators use class-balanced
+weights and a fixed random state.
+
+The experiment uses a reproducible four-fold `StratifiedGroupKFold` split
+(random state `42`). Each unique eight-feature profile is assigned wholly to
+either training or testing, preventing repeated profiles from crossing the
+boundary. The resulting split contains **1,125 training records and 375 test
+records**. Class labels are represented in both splits.
+
+Run the four documented configurations and create the model artifact:
 
 ```powershell
-python -m pytest
+python train.py `
+  --lr-c-values 0.1 1.0 `
+  --tree-depths 4 8 `
+  --tree-min-samples-leaf 5 `
+  --random-state 42 `
+  --experiment-name forensight-csl236-final
 ```
 
-## Security and data handling
+The script supports these configuration arguments plus `--tracking-db`,
+`--model-path`, and `--comparison-path`. It logs each run's algorithm,
+hyperparameters, dataset metadata, training/testing counts, aggregate metrics,
+class-wise metrics, confusion matrix, and model artifact to an MLflow SQLite
+tracking store (`mlflow.db`). The generated
+`reports/experiment_comparison.csv` records the measured comparison.
 
-- Passwords are hashed with Argon2id through `pwdlib`.
+Final measured results from the four configurations:
+
+| Run | Algorithm | Hyperparameters | Accuracy | Macro precision | Macro recall | Macro F1 |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| 01 | Logistic Regression | `C=0.1`, balanced, `max_iter=1000` | 0.6213 | 0.5867 | 0.5908 | 0.5878 |
+| 02 | Logistic Regression | `C=1.0`, balanced, `max_iter=1000` | 0.5787 | 0.5602 | 0.5662 | 0.5570 |
+| 03 | Decision Tree | `max_depth=4`, `min_samples_leaf=5`, balanced | 0.6240 | 0.5983 | 0.6062 | **0.5988** |
+| 04 | Decision Tree | `max_depth=8`, `min_samples_leaf=5`, balanced | **0.6400** | 0.5930 | 0.5895 | 0.5908 |
+
+The selected model is **Decision Tree (`max_depth=4`,
+`min_samples_leaf=5`)**, chosen by the highest macro F1; accuracy is the
+tie-breaker. The macro-F1 criterion gives equal weight to the two target
+classes. The deeper tree has higher accuracy but lower macro F1.
+
+Selected model class-wise results on the 375-record test split:
+
+| Class | Precision | Recall | F1 | Support |
+| --- | ---: | ---: | ---: | ---: |
+| `synthetic_lower_risk` | 0.7421 | 0.6613 | 0.6994 | 248 |
+| `synthetic_higher_risk` | 0.4545 | 0.5512 | 0.4982 | 127 |
+
+Confusion matrix (rows are actual; columns are predicted; class order is lower,
+higher):
+
+|  | Predicted lower | Predicted higher |
+| --- | ---: | ---: |
+| Actual lower | 164 | 84 |
+| Actual higher | 57 | 70 |
+
+The held-out set was used to compare and select among configurations, so these
+metrics are exploratory and may be optimistic after selection. They do not
+constitute external validation. The dataset labels are synthetic, and these
+scores are not real-world forensic performance or contamination-detection
+accuracy. Future work would require a separately sourced and verified labeled
+dataset, group-aware external validation, and a pre-registered evaluation.
+
+### MLflow
+
+From the project root, view the SQLite-backed run history with:
+
+```powershell
+mlflow ui --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1 --port 5000
+```
+
+Open [http://127.0.0.1:5000](http://127.0.0.1:5000). The default tracking
+database and `mlartifacts/` are local experiment outputs and are excluded from
+Git. Re-running `train.py` creates additional runs in the selected experiment.
+
+### Model serialization and loading
+
+The selected scikit-learn pipeline and evaluation metadata are saved with
+Joblib to `model/model.joblib`. The FastAPI lifespan loads this artifact once
+at application startup; prediction requests reuse the in-memory pipeline.
+Training and serving dependencies pin the same scikit-learn and Joblib
+versions. Only load this pickle-based artifact from a trusted project build;
+do not accept user-supplied Joblib files.
+
+If the artifact is missing, the application still starts, `/health` reports
+`experimental_model_loaded: false`, and `/predict` returns HTTP 503 with an
+explicit error. A corrupt artifact fails startup visibly instead of silently
+falling back to another model.
+
+## API
+
+| Method and path | Access | Purpose |
+| --- | --- | --- |
+| `GET /` | Public | Existing ForenSight web interface |
+| `GET /health` | Public | Health and experimental model-loaded status only |
+| `GET /docs` | Public | FastAPI Swagger UI |
+| `POST /predict` | Authenticated + CSRF | Experimental synthetic-data classification |
+| `GET /api/auth/csrf` | Public | Issue CSRF token |
+| `POST /api/auth/signup` | CSRF | Register and sign in |
+| `POST /api/auth/login` | CSRF | Sign in |
+| `POST /api/auth/logout` | CSRF | Sign out |
+| `GET /api/auth/me` | Authenticated | Current account |
+| `GET /api/dashboard` | Authenticated | Existing metrics and model evaluations |
+| `GET/POST /api/assessments` | Authenticated | Assessment history / create rule-based assessment |
+| `GET /api/assessments/{id}` | Authenticated | Read an owned assessment |
+
+The `POST /predict` request uses the eight feature fields in the data-contract
+table. Example:
+
+```json
+{
+  "evidence_type": "Trace",
+  "collection_conditions": "controlled",
+  "ppe_compliant": true,
+  "tool_condition": "clean",
+  "packaging_condition": "intact",
+  "storage_condition": "controlled",
+  "separately_packaged": true,
+  "chain_of_custody_documented": true
+}
+```
+
+The response contains the predicted synthetic class, per-class probabilities,
+selected algorithm, `dataset_type: "synthetic"`, and a disclaimer. It is
+protected by the same JWT authentication and CSRF protections as existing
+unsafe API requests. The assessment form offers the experimental prediction
+separately; it does not change or replace the rule-based assessment. Returned
+probabilities are model outputs, not calibrated real-world estimates.
+
+Invalid examples return HTTP 422:
+
+```json
+{"evidence_type":"Trace","collection_conditions":"controlled"}
+```
+
+The example omits required fields. `"ppe_compliant": "true"` is also rejected
+because the API requires a JSON boolean, and an unsupported categorical value
+or any unexpected field is rejected. Invalid model input is never mapped to a
+default value.
+
+## Existing rule-based screening and application
+
+The existing authentication, SQLite schema, assessment workflow, scoring
+thresholds, explanations, recommendations, history, and analytics remain
+separate from experimental model outputs. The overview keeps the existing
+Logistic Regression evaluation and adds the actual tracked comparison for both
+algorithms. Rule-based assessments remain the primary screening mechanism.
+
+## Prediction logging and drift checks
+
+Each successful `/predict` request appends its feature inputs, UTC timestamp,
+and synthetic predicted class to `data/prediction_logs.jsonl`. It does not log
+passwords, tokens, account identifiers, or evidence reference IDs. The path can
+be overridden with `PREDICTION_LOG_PATH`. If writing fails, the application
+logs a warning and still returns the prediction.
+
+Compare logged input distributions against the synthetic training dataset:
+
+```powershell
+python -m app.services.check_drift
+```
+
+The checker reports per-feature share differences and flags an input
+distribution shift when the largest absolute category-share difference reaches
+the default threshold of `0.1` (override with `--threshold`). This is only a
+data-drift signal. It is not model performance degradation or an accuracy
+measurement; evaluating performance requires verified outcome labels.
+
+## Testing
+
+Install the full requirements, train the model, then run:
+
+```powershell
+python train.py
+pytest -v --tb=short
+node --check frontend/app.js
+```
+
+The suite covers the existing authentication, assessment, history, and
+dashboard behavior; dataset validation and reproducibility; grouped split
+separation; both model pipelines and metrics; serialization/loading and
+predictions; MLflow run logging; API health/UI; valid and invalid authenticated
+prediction requests; safe prediction logging; and drift-comparison behavior.
+
+Final local verification: **41 passed** with two dependency deprecation
+warnings (Starlette's TestClient/httpx adapter and MLflow/SQLAlchemy's
+`noload` strategy). `node --check frontend/app.js` also passed.
+
+## Docker
+
+The serving image uses `python:3.11-slim` and installs only
+`requirements-serve.txt`; MLflow, pytest, and training tools are excluded.
+Build and run locally in PowerShell:
+
+```powershell
+docker build -t forensight-ai .
+$secret = python -c "import secrets; print(secrets.token_urlsafe(48))"
+docker run --rm -p 8000:8000 -e JWT_SECRET_KEY=$secret -v "${PWD}\data:/app/data" forensight-ai
+```
+
+The API listens on `0.0.0.0:8000`. The volume keeps the SQLite application data
+and prediction log outside the container. Run the server only behind an
+appropriately configured HTTPS reverse proxy for non-local use.
+
+
+### Docker verification results
+
+The Docker image was successfully built using `python:3.11-slim` and `requirements-serve.txt`.
+
+**Verified locally on 13 November 2026:**
+
+| Check | Result |
+| --- | --- |
+| Docker image build | Successful |
+| Image tag | `forensight-ai:latest` |
+| Docker disk usage | 592 MB |
+| Image content size | 136 MB |
+| Container startup | Successful |
+| Health endpoint | HTTP 200 |
+| Experimental model loading | Successful |
+| Application UI | Loaded |
+| Signup and login | Successful |
+| Valid experimental prediction | Successful |
+| Invalid prediction input | HTTP 422 |
+
+The container was tested using host port `8001`, mapped to container port `8000`. The `/health` endpoint returned `status: ok` and `experimental_model_loaded: true`.
+
+The invalid prediction test confirmed that an unsupported `evidence_type` is rejected with HTTP 422 while authentication and CSRF protections remain enabled.
+
+These results verify local Docker execution only. Remote deployment and GitHub Actions have not yet been verified.
+
+
+## GitHub Actions
+
+`.github/workflows/ci.yml` runs for pushes to `main` and pull requests targeting
+`main`. On a clean Ubuntu runner it installs pinned development dependencies,
+trains the baseline artifact before tests, checks frontend JavaScript syntax,
+and runs `pytest -v --tb=short`. The workflow has not been run remotely because
+this task does not push changes.
+
+## Security and privacy
+
+- Passwords use Argon2id hashing; JWT secrets come from the environment.
 - Authentication uses expiring HS256 JWTs in `HttpOnly`, `SameSite=Strict`
-  cookies. Protected endpoints also accept standard bearer tokens.
-- Unsafe requests require a CSRF token and reject mismatched request origins.
-- Dashboard and assessment queries are scoped to the authenticated user.
-- Use HTTPS, rotate secrets through the environment, and follow organizational
-  access-control, retention, backup, and evidence-handling policies in
-  deployment. This foundation is not a validated forensic decision system.
+  cookies; unsafe requests require CSRF validation.
+- Protected records and prediction requests require an authenticated account.
+- `.env`, the local application database, MLflow database/artifacts, prediction
+  logs, and Python caches are excluded from Git.
+- No remote deployment or Git push has been performed.
 
-## Experimental Logistic Regression evaluation
+## Screenshots and deployment evidence
 
-The Overview reports a separate Logistic Regression evaluation using the
-purpose-built dataset in `data/synthetic_evidence_outcomes.csv` (1,500 records,
-seed `20261113`). Regenerate the file with:
+No screenshots, GitHub Actions result, or live deployment URL are fabricated.
+Capture these after running the corresponding local or remote workflow:
 
-```powershell
-python -m app.services.synthetic_dataset
-```
+- `[Screenshot placeholder: ForenSight dashboard]`
+- `[Screenshot placeholder: experimental prediction interface]`
+- `[Screenshot placeholder: Swagger /docs]`
+- `[Screenshot placeholder: MLflow experiment comparison]`
+- `[Screenshot placeholder: pytest output]`
+- `[Screenshot placeholder: green GitHub Actions check]`
+- `[Screenshot placeholder: Docker build and container health]`
+- `[Deployment placeholder: no live deployment URL; not deployed]`
 
-Each record uses the evidence type, collection conditions, PPE compliance,
-collection tool condition, packaging condition, storage condition, separate
-packaging, and chain-of-custody documentation fields used by the assessment
-form. The generator samples feature values from documented fixed categorical
-distributions. It then calculates a simulated higher-risk probability from an
-independent logistic equation with evidence-type effects, handling-condition
-effects, and two interactions. It samples the binary outcome from that
-probability and flips 8% of sampled outcomes to provide explicit label noise.
-It does not call or reproduce the rule-based scoring engine; simulated labels
-are not records of actual contamination.
+## Limitations and future work
 
-Feature fields are sampled independently using these probabilities: evidence
-type (Biological 22%, Trace 19%, Digital 16%, Firearms 14%, Document 13%,
-Other 16%); collection conditions (controlled 70%, challenging 22%, unknown
-8%); PPE compliant 84%; tool condition (clean 76%, compromised 18%, unknown
-6%); packaging (intact 78%, compromised 16%, unknown 6%); storage (controlled
-70%, uncontrolled 24%, unknown 6%); separate packaging 78%; custody
-documentation complete 82%. For the higher-risk outcome, the generator uses
-`p = 1 / (1 + exp(-η))`, where `η` starts at -2.0. Evidence-type offsets are
-Biological +0.25, Trace +0.10, Digital -0.25, Firearms +0.15, Document -0.15,
-and Other 0. Condition offsets are challenging collection +0.75 / unknown
-+0.35; PPE non-compliance +0.70; compromised / unknown tool +0.80 / +0.30;
-compromised / unknown packaging +0.75 / +0.30; uncontrolled / unknown storage
-+0.70 / +0.25; no separate packaging +0.70; incomplete custody +0.65. Add
-+0.30 for challenging collection with non-compliant PPE and +0.35 for
-compromised packaging without separate packaging. The outcome is sampled
-Bernoulli from `p`, then independently inverted with probability 0.08. All
-values are simulation parameters, not empirically estimated effects.
-
-The app one-hot encodes the categorical inputs and uses only scikit-learn
-Logistic Regression. It evaluates a reproducible 75/25 stratified train/test
-split (seed `42`) and displays accuracy, macro precision, macro recall, macro
-F1, class-wise metrics, and the held-out confusion matrix. These are actual
-metrics for this generated dataset and split, but they measure only performance
-on synthetic data. They are not real-world forensic validation or
-contamination-detection accuracy. The rule-based assessment remains the
-primary screening mechanism and is not combined with the experimental model.
-
-## Application structure
-
-- `app/main.py` — FastAPI application, lifecycle, request protections, static UI
-- `app/routes.py` — authentication, dashboard, and assessment API
-- `app/auth.py` — password hashing and JWT authentication
-- `app/database.py` — SQLite schema and connections
-- `app/services/risk_assessment.py` — model interface and preliminary rules
-- `app/services/logistic_regression.py` — isolated experimental Logistic Regression evaluation
-- `app/services/synthetic_dataset.py` — reproducible synthetic feature and label generator
-- `app/schemas.py` — request and response validation
-- `frontend/` — responsive HTML, CSS, and vanilla JavaScript
-- `tests/` — API workflow tests
+The synthetic generator encodes assumed relationships, and the model learns
+those generated labels rather than verified contamination outcomes. The
+reported holdout results are exploratory, come from a single split also used
+for configuration selection, and must not be interpreted as forensic accuracy.
+The rule-based score is still preliminary and separate. A future study would
+need accessible, ethically and legally governed forensic data with verified
+outcome labels, group-aware independent evaluation, expert review, and
+documented deployment monitoring before any real-world claims.

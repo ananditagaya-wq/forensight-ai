@@ -178,6 +178,7 @@ function updateDashboard(data) {
   renderMonthlyTrend(data.monthly_trend, $("#trend-chart"));
   renderHighRiskAssessments(data.high_risk_assessments, $("#high-risk-content"));
   updateModelEvaluation(data.model_evaluation);
+  renderExperimentComparison(data.model_comparison || []);
 
   const recent = $("#recent-content");
   recent.replaceChildren(data.recent.length
@@ -207,8 +208,7 @@ function renderModelEmptyState(container, title, message) {
   container.append(state);
 }
 
-function renderConfusionMatrix(matrix) {
-  const container = $("#model-confusion-matrix");
+function renderConfusionMatrix(matrix, container = $("#model-confusion-matrix")) {
   container.replaceChildren();
   if (!matrix) {
     renderModelEmptyState(
@@ -257,8 +257,7 @@ function renderConfusionMatrix(matrix) {
   container.append(wrapper);
 }
 
-function renderClassMetrics(metrics) {
-  const container = $("#model-class-metrics");
+function renderClassMetrics(metrics, container = $("#model-class-metrics")) {
   container.replaceChildren();
   if (!metrics.length) {
     renderModelEmptyState(
@@ -295,6 +294,59 @@ function renderClassMetrics(metrics) {
   wrapper.append(table);
   container.className = "model-table-wrap";
   container.append(wrapper);
+}
+
+function renderExperimentComparison(results) {
+  const container = $("#experiment-comparison-table");
+  container.replaceChildren();
+  const selected = results.find((result) => result.selected);
+  const selectedMatrix = $("#selected-model-confusion-matrix");
+  const selectedClasses = $("#selected-model-class-metrics");
+  $("#selected-model-label").textContent = selected
+    ? `Selected model: ${selected.algorithm}`
+    : "Selected model: unavailable";
+  if (!results.length) {
+    renderModelEmptyState(
+      container,
+      "Experiment comparison unavailable",
+      "Train the experimental models to show their synthetic holdout comparison.",
+    );
+    renderConfusionMatrix(null, selectedMatrix);
+    renderClassMetrics([], selectedClasses);
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "table-wrap";
+  const table = document.createElement("table");
+  table.className = "data-table model-data-table";
+  const head = document.createElement("thead");
+  head.innerHTML = "<tr><th>Algorithm</th><th>Configuration</th><th>Accuracy</th><th>Macro precision</th><th>Macro recall</th><th>Macro F1</th><th>Selection</th></tr>";
+  const body = document.createElement("tbody");
+  results.forEach((result) => {
+    const row = document.createElement("tr");
+    const values = [
+      result.algorithm,
+      result.hyperparameters,
+      formatModelMetric(result.accuracy),
+      formatModelMetric(result.macro_precision),
+      formatModelMetric(result.macro_recall),
+      formatModelMetric(result.macro_f1),
+      result.selected ? "Selected" : "Compared",
+    ];
+    values.forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    });
+    body.append(row);
+  });
+  table.append(head, body);
+  wrapper.append(table);
+  container.className = "model-table-wrap";
+  container.append(wrapper);
+  renderConfusionMatrix(selected ? selected.confusion_matrix : null, selectedMatrix);
+  renderClassMetrics(selected ? selected.class_metrics : [], selectedClasses);
 }
 
 function updateModelEvaluation(evaluation) {
@@ -593,6 +645,65 @@ function showAssessmentResult(result) {
   renderRiskExplanation(container, result.risk_factors, result.risk_score);
   renderList(container, "Precaution recommendations", result.recommendations);
 }
+
+function showExperimentalPrediction(result) {
+  const container = $("#experimental-prediction-result");
+  container.replaceChildren();
+  const heading = document.createElement("strong");
+  heading.textContent = `Synthetic outcome: ${result.prediction.replaceAll("_", " ")}`;
+  const algorithm = document.createElement("p");
+  algorithm.textContent = `Algorithm: ${result.algorithm}`;
+  const probabilities = document.createElement("ul");
+  Object.entries(result.class_probabilities).forEach(([label, probability]) => {
+    const item = document.createElement("li");
+    item.textContent = `${label.replaceAll("_", " ")}: ${new Intl.NumberFormat(undefined, {
+      style: "percent",
+      maximumFractionDigits: 1,
+    }).format(probability)}`;
+    probabilities.append(item);
+  });
+  const note = document.createElement("p");
+  note.textContent = result.disclaimer;
+  container.append(heading, algorithm, probabilities, note);
+  container.classList.add("has-result");
+}
+
+$("#run-experimental-prediction").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const form = $("#assessment-form");
+  const featureNames = [
+    "evidence_type",
+    "collection_conditions",
+    "ppe_compliant",
+    "tool_condition",
+    "packaging_condition",
+    "storage_condition",
+    "separately_packaged",
+    "chain_of_custody_documented",
+  ];
+  const values = Object.fromEntries(new FormData(form).entries());
+  if (featureNames.some((name) => !values[name])) {
+    showToast("Select every handling feature before running the experimental model.", true);
+    return;
+  }
+  values.ppe_compliant = values.ppe_compliant === "true";
+  values.separately_packaged = values.separately_packaged === "true";
+  values.chain_of_custody_documented = values.chain_of_custody_documented === "true";
+  const predictionInput = Object.fromEntries(
+    featureNames.map((name) => [name, values[name]]),
+  );
+  button.disabled = true;
+  try {
+    showExperimentalPrediction(await api("/predict", {
+      method: "POST",
+      body: JSON.stringify(predictionInput),
+    }));
+  } catch (error) {
+    showToast(error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $("#auth-switch").addEventListener("click", () => setAuthMode(state.authMode === "login" ? "signup" : "login"));
 $("#auth-form").addEventListener("submit", async (event) => {

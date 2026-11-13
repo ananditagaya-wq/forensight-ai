@@ -191,6 +191,15 @@
               <div><h3>Class-wise results</h3><div id="model-class-metrics" class="model-table-empty" aria-live="polite"></div></div>
             </div>
             <p class="model-disclaimer">Experimental Logistic Regression holdout evaluation on synthetic data only. Simulated labels and metrics are not observed contamination outcomes and do not establish real-world forensic performance. The rule-based assessment remains the primary screening mechanism.</p>
+            <div class="comparison-section">
+              <div class="section-heading"><div><p class="eyebrow">TRACKED EXPERIMENTS</p><h3>Algorithm comparison</h3></div><span id="selected-model-label" class="model-status">Selected model: unavailable</span></div>
+              <div id="experiment-comparison-table" class="model-table-empty" aria-live="polite"></div>
+              <div class="model-detail-grid comparison-detail-grid">
+                <div><h3>Selected model confusion matrix</h3><div id="selected-model-confusion-matrix" class="model-table-empty" aria-live="polite"></div></div>
+                <div><h3>Selected model class-wise results</h3><div id="selected-model-class-metrics" class="model-table-empty" aria-live="polite"></div></div>
+              </div>
+              <p class="model-disclaimer">Configuration comparisons use the same grouped, stratified synthetic holdout. The selected configuration is an experimental choice, not external forensic validation.</p>
+            </div>
           </article>
 
           <article class="surface recent-card">
@@ -228,6 +237,14 @@
             <aside class="assessment-aside">
               <div class="surface guidance-card"><span class="guidance-icon">i</span><h2>How to use this assessment</h2><p>Enter known handling conditions only. Choose “Unknown” rather than inferring a condition that was not documented.</p><div class="guidance-divider"></div><p class="guidance-emphasis">A risk indicator is a prompt for review—not a finding that contamination occurred.</p></div>
               <div id="assessment-result" class="surface result-card hidden" aria-live="polite"></div>
+              <section class="surface experimental-prediction">
+                <p class="eyebrow">EXPERIMENTAL MACHINE LEARNING</p>
+                <h2>Synthetic model preview</h2>
+                <p>Run a separate classification using the handling fields above. This does not change or replace the rule-based assessment.</p>
+                <button id="run-experimental-prediction" class="button button-secondary" type="button">Run experimental prediction <span aria-hidden="true">→</span></button>
+                <div id="experimental-prediction-result" class="prediction-result" aria-live="polite"></div>
+                <p class="prediction-disclaimer">Synthetic training data only. This experimental output is not real-world forensic validation and does not establish contamination.</p>
+              </section>
             </aside>
           </div>
         </section>

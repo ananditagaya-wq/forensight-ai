@@ -44,6 +44,23 @@ class AssessmentRequest(BaseModel):
         return value
 
 
+class PredictionRequest(BaseModel):
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        strict=True,
+        extra="forbid",
+    )
+
+    evidence_type: EvidenceType
+    collection_conditions: Literal["controlled", "challenging", "unknown"]
+    ppe_compliant: bool
+    tool_condition: Literal["clean", "compromised", "unknown"]
+    packaging_condition: Literal["intact", "compromised", "unknown"]
+    storage_condition: Literal["controlled", "uncontrolled", "unknown"]
+    separately_packaged: bool
+    chain_of_custody_documented: bool
+
+
 class UserResponse(BaseModel):
     id: int
     full_name: str

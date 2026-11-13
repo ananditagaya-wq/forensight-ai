@@ -1,0 +1,5 @@
+run_name,run_id,algorithm,hyperparameters,accuracy,macro_precision,macro_recall,macro_f1,training_records,testing_records
+01-logistic-regression,029c05d37c2d40f4b0e66fb03dc6e196,Logistic Regression,"{""C"": 0.1, ""class_weight"": ""balanced"", ""max_iter"": 1000}",0.6213333333333333,0.5866521185670122,0.5907734315468631,0.5877717223013563,1125,375
+02-logistic-regression,8c9a5971089d45e48db39882ec5bd205,Logistic Regression,"{""C"": 1.0, ""class_weight"": ""balanced"", ""max_iter"": 1000}",0.5786666666666667,0.5601731601731602,0.5661988823977648,0.5569629718250882,1125,375
+03-decision-tree,b3e6cc80dc174c498ef3667fa6114a97,Decision Tree,"{""class_weight"": ""balanced"", ""max_depth"": 4, ""min_samples_leaf"": 5}",0.624,0.5983134512546278,0.6062357124714249,0.5987904908603905,1125,375
+04-decision-tree,3aac9750131643ecb8deecc58751b61d,Decision Tree,"{""class_weight"": ""balanced"", ""max_depth"": 8, ""min_samples_leaf"": 5}",0.64,0.592973026445954,0.5895193040386081,0.5908264295817337,1125,375

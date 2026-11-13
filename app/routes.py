@@ -156,7 +156,11 @@ def current_user(user=Depends(get_current_user)):
 
 
 @router.get("/dashboard")
-def dashboard(user=Depends(get_current_user), db=Depends(get_db)):
+def dashboard(
+    request: Request,
+    user=Depends(get_current_user),
+    db=Depends(get_db),
+):
     counts = db.execute(
         """
         SELECT COUNT(*) AS total,
@@ -252,6 +256,11 @@ def dashboard(user=Depends(get_current_user), db=Depends(get_db)):
         ],
         "high_risk_assessments": [_assessment_payload(row) for row in high_risk],
         "model_evaluation": get_model_evaluation(),
+        "model_comparison": (
+            request.app.state.model_artifact.get("experiment_comparison", [])
+            if getattr(request.app.state, "model_artifact", None) is not None
+            else []
+        ),
     }
 
 

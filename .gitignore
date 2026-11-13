@@ -6,3 +6,9 @@ __pycache__/
 
 data/*.sqlite3
 data/*.db
+data/prediction_logs.jsonl
+
+mlflow.db-shm
+mlflow.db-wal
+mlflow.db
+mlartifacts/

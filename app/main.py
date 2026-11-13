@@ -8,12 +8,15 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.database import initialize_database
+from app.prediction_routes import router as prediction_router
 from app.routes import CSRF_COOKIE, router
+from app.services.model_runtime import load_model_artifact
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(application: FastAPI):
     initialize_database()
+    application.state.model_artifact = load_model_artifact()
     yield
 
 
@@ -24,6 +27,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(router)
+app.include_router(prediction_router)
 
 
 def _set_security_headers(response):
@@ -62,8 +66,14 @@ async def protect_unsafe_requests(request: Request, call_next):
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health(request: Request):
+    return {
+        "status": "ok",
+        "experimental_model_loaded": getattr(
+            request.app.state, "model_artifact", None
+        )
+        is not None,
+    }
 
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
