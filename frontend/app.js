@@ -144,15 +144,73 @@ function assessmentTable(records, compact = false) {
   return wrapper;
 }
 
+const countAnimations = new WeakMap();
+
+function animateCount(element, value) {
+  const target = Number(value);
+  if (!Number.isFinite(target)) {
+    element.textContent = value;
+    return;
+  }
+
+  const previousFrame = countAnimations.get(element);
+  if (previousFrame !== undefined) window.cancelAnimationFrame(previousFrame);
+
+  const displayedValue = element.dataset.currentValue;
+  const current = displayedValue === undefined
+    ? Number(element.textContent.replaceAll(",", "")) || 0
+    : Number(displayedValue);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || current === target) {
+    element.textContent = target.toLocaleString();
+    element.dataset.currentValue = String(target);
+    return;
+  }
+
+  const startTime = window.performance.now();
+  const duration = 560;
+  const step = (timestamp) => {
+    const progress = Math.min((timestamp - startTime) / duration, 1);
+    const eased = 1 - (1 - progress) ** 3;
+    const displayed = Math.round(current + (target - current) * eased);
+    element.textContent = displayed.toLocaleString();
+    element.dataset.currentValue = String(displayed);
+    if (progress < 1) {
+      countAnimations.set(element, window.requestAnimationFrame(step));
+    } else {
+      element.textContent = target.toLocaleString();
+      element.dataset.currentValue = String(target);
+      countAnimations.delete(element);
+    }
+  };
+  countAnimations.set(element, window.requestAnimationFrame(step));
+}
+
+function updateRiskGauges(data) {
+  ["low", "medium", "high"].forEach((category) => {
+    const count = data[category];
+    const share = data.total > 0 ? Math.min((count / data.total) * 100, 100) : 0;
+    const gauge = $(`#gauge-${category}`);
+    gauge.style.setProperty("--gauge-progress", `${share}%`);
+    gauge.setAttribute("aria-valuenow", share.toFixed(1));
+    gauge.setAttribute(
+      "aria-valuetext",
+      `${Math.round(share)} percent, ${count} of ${data.total} assessments`,
+    );
+    $(`#gauge-${category}-percent`).textContent = `${Math.round(share)}%`;
+    animateCount($(`#gauge-${category}-count`), count);
+  });
+}
+
 function updateDashboard(data) {
   state.dashboard = data;
-  $("#metric-total").textContent = data.total;
-  $("#metric-low").textContent = data.low;
-  $("#metric-medium").textContent = data.medium;
-  $("#metric-high").textContent = data.high;
+  animateCount($("#metric-total"), data.total);
+  animateCount($("#metric-low"), data.low);
+  animateCount($("#metric-medium"), data.medium);
+  animateCount($("#metric-high"), data.high);
   $("#chart-low").textContent = data.low;
   $("#chart-medium").textContent = data.medium;
   $("#chart-high").textContent = data.high;
+  updateRiskGauges(data);
   const max = Math.max(data.low, data.medium, data.high, 1);
   $("#bar-low").style.width = `${data.low ? Math.max(data.low / max * 100, 4) : 0}%`;
   $("#bar-medium").style.width = `${data.medium ? Math.max(data.medium / max * 100, 4) : 0}%`;
@@ -485,7 +543,12 @@ async function loadHistory() {
 }
 
 function navigate(view) {
-  const titles = { dashboard: "Overview", assessment: "New assessment", history: "Assessment history" };
+  const titles = {
+    dashboard: "Overview",
+    assessment: "New assessment",
+    history: "Results & history",
+    research: "Model & Research Lab",
+  };
   $$(".page-view").forEach((section) => section.classList.toggle("hidden", section.id !== `view-${view}`));
   $$(".nav-link").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
   $("#page-crumb").textContent = titles[view] || titles.dashboard;
@@ -495,8 +558,10 @@ function navigate(view) {
 
 function showWorkspace(user) {
   state.user = user;
+  $("#public-landing").classList.add("hidden");
   $("#auth-screen").classList.add("hidden");
   $("#workspace").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "instant" });
   updateUserUI();
   $("#today-label").textContent = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date());
   navigate("dashboard");
@@ -504,9 +569,19 @@ function showWorkspace(user) {
 
 function showAuth() {
   state.user = null;
+  $("#public-landing").classList.add("hidden");
   $("#workspace").classList.add("hidden");
   $("#auth-screen").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "instant" });
   setAuthMode("login");
+}
+
+function showLanding() {
+  state.user = null;
+  $("#workspace").classList.add("hidden");
+  $("#auth-screen").classList.add("hidden");
+  $("#public-landing").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 function renderList(container, title, values) {
@@ -749,7 +824,7 @@ $("#risk-filter").addEventListener("change", () => loadHistory().catch((error) =
 async function logout() {
   try {
     await api("/api/auth/logout", { method: "POST" });
-    showAuth();
+    showLanding();
   } catch (error) {
     showToast(error.message, true);
   }
@@ -761,6 +836,14 @@ $("#detail-dialog").addEventListener("click", (event) => {
   if (event.target === event.currentTarget) event.currentTarget.close();
 });
 document.addEventListener("click", (event) => {
+  const mobileNavLink = event.target.closest(".landing-mobile-menu a");
+  if (mobileNavLink) mobileNavLink.closest("details").open = false;
+  const publicAction = event.target.closest("[data-public-action]");
+  if (publicAction) {
+    if (publicAction.dataset.publicAction === "login") showAuth();
+    if (publicAction.dataset.publicAction === "home") showLanding();
+    return;
+  }
   const riskFilter = event.target.closest("[data-risk-filter]");
   if (riskFilter && state.user) {
     $("#risk-filter").value = riskFilter.dataset.riskFilter;
@@ -785,7 +868,7 @@ document.addEventListener("click", (event) => {
     const response = await api("/api/auth/me");
     showWorkspace(response.user);
   } catch (error) {
-    showAuth();
+    showLanding();
     if (!(error instanceof ApiError && error.status === 401)) {
       showToast(error.message || "Could not connect to the workspace.", true);
     }

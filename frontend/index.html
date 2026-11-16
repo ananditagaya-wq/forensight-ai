@@ -3,16 +3,177 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#080D16">
-    <meta name="description" content="ForenSight AI forensic evidence handling assessments">
-    <title>ForenSight AI — Evidence Integrity</title>
+    <meta name="theme-color" content="#08090D">
+    <meta name="description" content="ForenSight AI helps users document evidence handling conditions and review preliminary forensic risk indicators.">
+    <title>ForenSight AI — Structured Evidence Review</title>
     <link rel="stylesheet" href="/styles.css">
     <script src="/app.js" defer></script>
   </head>
   <body>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-    <main id="auth-screen" class="auth-screen">
+    <main id="public-landing" class="public-landing">
+      <header class="landing-header">
+        <a class="brand-lockup landing-brand" href="#landing-home" aria-label="ForenSight AI home">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 36 36"><path d="M18 3 30 8v9c0 8-5.3 13-12 16C11.3 30 6 25 6 17V8l12-5Z"/><path d="m12 18 4 4 8-9"/></svg>
+          </span>
+          <span class="brand-name">ForenSight<span> AI</span></span>
+        </a>
+        <nav class="landing-nav" aria-label="Public navigation">
+          <a href="#landing-home">Home</a>
+          <a href="#about">About</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#significance">Significance</a>
+        </nav>
+        <details class="landing-mobile-menu">
+          <summary aria-label="Open navigation menu">Menu</summary>
+          <nav aria-label="Mobile public navigation">
+            <a href="#landing-home">Home</a>
+            <a href="#about">About</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="#significance">Significance</a>
+          </nav>
+        </details>
+        <button class="button button-primary landing-access" type="button" data-public-action="login">Log in <span aria-hidden="true">→</span></button>
+      </header>
+
+      <section id="landing-home" class="landing-hero">
+        <div class="landing-hero-copy">
+          <p class="eyebrow">FORENSIGHT AI · EVIDENCE REVIEW</p>
+          <h1>A more structured way to review evidence handling</h1>
+          <p class="landing-lede">ForenSight AI helps users document evidence handling conditions and review preliminary risk indicators in one workspace.</p>
+          <p class="landing-hero-note">A decision-support prototype for learning and structured review—not a substitute for forensic expertise.</p>
+          <div class="landing-hero-actions">
+            <a class="button button-primary" href="#how-it-works">Explore how it works <span aria-hidden="true">↓</span></a>
+            <button class="button button-secondary" type="button" data-public-action="login">Access workspace</button>
+          </div>
+        </div>
+        <div class="hero-visual" role="img" aria-label="Conceptual illustration of evidence information moving through a structured review; not a live analysis">
+          <div class="hero-visual-frame">
+            <div class="visual-orbit visual-orbit-outer"></div>
+            <div class="visual-orbit visual-orbit-inner"></div>
+            <div class="visual-core"><span class="core-mark" aria-hidden="true"></span><span>REVIEW<br>FRAMEWORK</span></div>
+            <div class="visual-card visual-card-top"><span class="visual-card-index">01</span><span>Evidence<br>information</span><i aria-hidden="true"></i></div>
+            <div class="visual-card visual-card-side"><span class="visual-card-index">02</span><span>Handling<br>context</span><i aria-hidden="true"></i></div>
+            <div class="visual-card visual-card-bottom"><span class="visual-card-index">03</span><span>Human<br>interpretation</span><i aria-hidden="true"></i></div>
+            <div class="visual-connector connector-one"></div>
+            <div class="visual-connector connector-two"></div>
+            <span class="visual-coordinate coordinate-one" aria-hidden="true"></span>
+            <span class="visual-coordinate coordinate-two" aria-hidden="true"></span>
+            <p class="visual-caption">Illustrative workflow · no live evidence is shown</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="about" class="landing-section problem-section">
+        <div class="section-kicker"><span>01</span><span>THE CONTEXT</span></div>
+        <div class="problem-layout">
+          <h2>Evidence review brings together details that deserve a clear structure</h2>
+          <div class="problem-copy">
+            <p>Collection, packaging, storage and custody each add context to an evidence record. When those details are spread across notes and forms, it can take extra effort to see them together.</p>
+            <p>ForenSight offers a consistent place to record reported conditions and review preliminary indicators, while leaving interpretation with the people doing the work.</p>
+          </div>
+        </div>
+        <div class="context-grid">
+          <article class="context-card"><span class="context-mark">A</span><h3>Many related conditions</h3><p>Evidence handling involves multiple attributes, from collection through storage and documentation.</p></article>
+          <article class="context-card"><span class="context-mark">B</span><h3>Information needs context</h3><p>A recorded condition is one part of a broader review, not a conclusion on its own.</p></article>
+          <article class="context-card"><span class="context-mark">C</span><h3>Uncertainty should stay visible</h3><p>Unknown or unrecorded details are kept explicit rather than filled in by assumption.</p></article>
+        </div>
+      </section>
+
+      <section class="landing-section about-product-section">
+        <div class="section-kicker"><span>02</span><span>ABOUT FORENSIGHT</span></div>
+        <div class="about-product-layout">
+          <h2>Built to explore structured, human-led evidence assessment</h2>
+          <div>
+            <p>ForenSight AI is an AI-assisted forensic evidence risk-assessment platform and decision-support prototype. It was developed to explore how evidence-related information and handling conditions can be recorded and reviewed in a consistent interface.</p>
+            <p>The workspace captures user-provided evidence details, presents preliminary rule-based risk indicators and recommendations, and keeps experimental machine-learning outputs separate from the primary assessment.</p>
+            <button class="text-button landing-inline-link" type="button" data-public-action="login">See the workspace <span aria-hidden="true">→</span></button>
+          </div>
+        </div>
+      </section>
+
+      <section id="how-it-works" class="landing-section workflow-section">
+        <div class="section-kicker"><span>03</span><span>HOW IT WORKS</span></div>
+        <div class="section-intro">
+          <h2>A straightforward path from documented conditions to informed review</h2>
+          <p>The current workflow records the information supplied by the user, applies the existing preliminary rule-based assessment, and presents the result for human interpretation.</p>
+        </div>
+        <ol class="workflow-steps">
+          <li><span class="workflow-number">01</span><div><h3>Enter evidence information</h3><p>Record a reference, evidence type and the handling conditions available to you.</p></div></li>
+          <li><span class="workflow-number">02</span><div><h3>Review the reported context</h3><p>Collection, PPE, tools, packaging, storage and custody details are assessed using the existing rules.</p></div></li>
+          <li><span class="workflow-number">03</span><div><h3>See preliminary indicators</h3><p>The workspace displays the resulting risk category, score, contributing factors and precaution recommendations.</p></div></li>
+          <li><span class="workflow-number">04</span><div><h3>Interpret with human expertise</h3><p>Use the record as a prompt for further review, not as a definitive forensic conclusion.</p></div></li>
+        </ol>
+      </section>
+
+      <section class="landing-section audience-section">
+        <div class="section-kicker"><span>04</span><span>WHO IT IS FOR</span></div>
+        <div class="audience-layout">
+          <h2>Made for people curious about forensic practice and technology</h2>
+          <div class="audience-grid">
+            <article><span>01</span><h3>Students</h3><p>Explore how structured evidence-handling information can be presented.</p></article>
+            <article><span>02</span><h3>Researchers</h3><p>Examine a prototype that keeps rule-based screening distinct from experimental ML.</p></article>
+            <article><span>03</span><h3>Educators</h3><p>Use the interface as a discussion point for documentation and interpretation.</p></article>
+            <article><span>04</span><h3>Institutions</h3><p>Review an educational example of a structured evidence-assessment workflow.</p></article>
+            <article><span>05</span><h3>Technology enthusiasts</h3><p>Learn how forensic technology prototypes can communicate their limits.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="significance" class="landing-section significance-section">
+        <div class="section-kicker"><span>05</span><span>WHY STRUCTURE MATTERS</span></div>
+        <div class="section-intro">
+          <h2>Clarity in the record supports a more considered review</h2>
+          <p>ForenSight focuses on making inputs, reported conditions and preliminary outputs visible together. Its value is in structured presentation and exploration—not in replacing expert judgment.</p>
+        </div>
+        <div class="significance-list">
+          <div><span>01</span><p>Consistent presentation of evidence-related information</p></div>
+          <div><span>02</span><p>Clear display of preliminary risk indicators and their contributing factors</p></div>
+          <div><span>03</span><p>An educational setting for exploring forensic technology and experimental ML</p></div>
+          <div><span>04</span><p>Human review and independent verification remain central</p></div>
+        </div>
+      </section>
+
+      <section class="landing-section transparency-section">
+        <div class="section-kicker"><span>06</span><span>TRANSPARENCY & LIMITATIONS</span></div>
+        <div class="transparency-layout">
+          <div>
+            <h2>A prototype, with its limits in plain view</h2>
+            <p>ForenSight supports exploration and structured review. Its outputs are not validated forensic findings, and should not be used as definitive conclusions.</p>
+          </div>
+          <ul class="transparency-points">
+            <li><strong>Synthetic data</strong><span>Model training and evaluation use synthetic data, not verified forensic outcomes.</span></li>
+            <li><strong>Rule-based primary assessment</strong><span>The preliminary rule-based score is the main screening mechanism; it is not confirmation of contamination.</span></li>
+            <li><strong>Experimental classifiers</strong><span>ML results are exploratory and do not establish real-world performance.</span></li>
+            <li><strong>Human expertise remains essential</strong><span>Independent verification and qualified interpretation are necessary.</span></li>
+            <li><strong>No independent validation</strong><span>The platform has not established legal or forensic validity through independent validation.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="landing-cta">
+        <p class="eyebrow">FORENSIGHT AI</p>
+        <h2>Explore a more structured approach to evidence assessment</h2>
+        <p>Review the workflow, its preliminary indicators and the limitations that guide their interpretation.</p>
+        <div class="landing-hero-actions">
+          <a class="button button-secondary" href="#landing-home">Explore ForenSight</a>
+          <button class="button button-primary" type="button" data-public-action="login">Access workspace <span aria-hidden="true">→</span></button>
+        </div>
+      </section>
+
+      <footer class="landing-footer">
+        <a class="brand-lockup" href="#landing-home" aria-label="ForenSight AI home">
+          <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M18 3 30 8v9c0 8-5.3 13-12 16C11.3 30 6 25 6 17V8l12-5Z"/><path d="m12 18 4 4 8-9"/></svg></span>
+          <span class="brand-name">ForenSight<span> AI</span></span>
+        </a>
+        <p>Decision-support prototype · Preliminary indicators only</p>
+        <button class="text-button" type="button" data-public-action="login">Workspace login</button>
+      </footer>
+    </main>
+
+    <main id="auth-screen" class="auth-screen hidden">
       <section class="auth-brand" aria-label="ForenSight AI">
         <div class="brand-lockup">
           <span class="brand-mark" aria-hidden="true">
@@ -30,6 +191,7 @@
 
       <section class="auth-panel">
         <div class="auth-panel-inner">
+          <button class="text-button auth-home-link" type="button" data-public-action="home">← Back to ForenSight</button>
           <div class="mobile-brand brand-lockup">
             <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36"><path d="M18 3 30 8v9c0 8-5.3 13-12 16C11.3 30 6 25 6 17V8l12-5Z"/><path d="m12 18 4 4 8-9"/></svg></span>
             <span class="brand-name">ForenSight<span> AI</span></span>
@@ -79,7 +241,11 @@
           </button>
           <button class="nav-link" type="button" data-view="history">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h16M4 12h16M4 16.5h10"/><circle cx="18" cy="17" r="3.5"/><path d="M18 15v2l1.5 1"/></svg>
-            Assessment history
+            Results & history
+          </button>
+          <button class="nav-link" type="button" data-view="research">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5M8 11h5.5M10.75 8.25v5.5"/></svg>
+            Model & Research Lab
           </button>
         </nav>
         <div class="sidebar-bottom">
@@ -131,6 +297,23 @@
             <article class="surface chart-card">
               <div class="section-heading"><div><p class="eyebrow">AT A GLANCE</p><h2>Risk distribution</h2></div><span class="subtle-tag">All assessments</span></div>
               <div id="risk-chart" class="risk-chart" role="group" aria-label="Risk distribution chart. Select a category to view matching assessments.">
+                <div class="risk-gauges" role="group" aria-label="Share of assessments in each risk category">
+                  <div id="gauge-low" class="risk-gauge low-gauge" role="progressbar" aria-label="Low-risk assessment share" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 percent">
+                    <span class="risk-gauge-ring" aria-hidden="true"><span id="gauge-low-percent">0%</span></span>
+                    <span class="risk-gauge-label">Low</span>
+                    <strong id="gauge-low-count" class="risk-gauge-count">0</strong>
+                  </div>
+                  <div id="gauge-medium" class="risk-gauge medium-gauge" role="progressbar" aria-label="Medium-risk assessment share" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 percent">
+                    <span class="risk-gauge-ring" aria-hidden="true"><span id="gauge-medium-percent">0%</span></span>
+                    <span class="risk-gauge-label">Medium</span>
+                    <strong id="gauge-medium-count" class="risk-gauge-count">0</strong>
+                  </div>
+                  <div id="gauge-high" class="risk-gauge high-gauge" role="progressbar" aria-label="High-risk assessment share" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0 percent">
+                    <span class="risk-gauge-ring" aria-hidden="true"><span id="gauge-high-percent">0%</span></span>
+                    <span class="risk-gauge-label">High</span>
+                    <strong id="gauge-high-count" class="risk-gauge-count">0</strong>
+                  </div>
+                </div>
                 <div class="chart-bars">
                   <button class="chart-row risk-chart-row" type="button" data-risk-filter="low" aria-label="View low-risk assessments"><span class="chart-label"><span class="status-dot low-dot"></span>Low</span><span class="bar-track"><span id="bar-low" class="bar-fill low-fill"></span></span><strong id="chart-low">0</strong></button>
                   <button class="chart-row risk-chart-row" type="button" data-risk-filter="medium" aria-label="View medium-risk assessments"><span class="chart-label"><span class="status-dot medium-dot"></span>Medium</span><span class="bar-track"><span id="bar-medium" class="bar-fill medium-fill"></span></span><strong id="chart-medium">0</strong></button>
@@ -169,38 +352,6 @@
               <div id="high-risk-content"></div>
             </article>
           </div>
-
-          <article class="surface model-evaluation-card">
-            <div class="section-heading"><div><p class="eyebrow">EXPERIMENTAL MACHINE LEARNING</p><h2>Logistic Regression — Model Evaluation</h2></div><span id="model-status" class="model-status">Experimental — synthetic data</span></div>
-            <p id="model-scope" class="model-scope">Experimental metrics are calculated from a purpose-built synthetic dataset, not observed forensic outcomes.</p>
-            <p class="model-module-note">Logistic Regression is implemented as a separate experimental module and does not change the primary rule-based assessment.</p>
-            <div class="model-meta-grid">
-              <div><span>Training dataset source</span><strong id="model-source">Synthetic demonstration dataset</strong></div>
-              <div><span>Training records</span><strong id="model-training-count">—</strong></div>
-              <div><span>Testing records</span><strong id="model-testing-count">—</strong></div>
-              <div><span>Model status</span><strong id="model-status-detail">Experimental — synthetic data</strong></div>
-            </div>
-            <div class="model-metric-grid">
-              <div class="model-metric"><span>Accuracy</span><strong id="model-accuracy" class="is-unavailable">Not available</strong></div>
-              <div class="model-metric"><span>Macro precision</span><strong id="model-precision" class="is-unavailable">Not available</strong></div>
-              <div class="model-metric"><span>Macro recall</span><strong id="model-recall" class="is-unavailable">Not available</strong></div>
-              <div class="model-metric"><span>Macro F1-score</span><strong id="model-f1" class="is-unavailable">Not available</strong></div>
-            </div>
-            <div class="model-detail-grid">
-              <div><h3>Confusion matrix</h3><div id="model-confusion-matrix" class="model-table-empty" aria-live="polite"></div></div>
-              <div><h3>Class-wise results</h3><div id="model-class-metrics" class="model-table-empty" aria-live="polite"></div></div>
-            </div>
-            <p class="model-disclaimer">Experimental Logistic Regression holdout evaluation on synthetic data only. Simulated labels and metrics are not observed contamination outcomes and do not establish real-world forensic performance. The rule-based assessment remains the primary screening mechanism.</p>
-            <div class="comparison-section">
-              <div class="section-heading"><div><p class="eyebrow">TRACKED EXPERIMENTS</p><h3>Algorithm comparison</h3></div><span id="selected-model-label" class="model-status">Selected model: unavailable</span></div>
-              <div id="experiment-comparison-table" class="model-table-empty" aria-live="polite"></div>
-              <div class="model-detail-grid comparison-detail-grid">
-                <div><h3>Selected model confusion matrix</h3><div id="selected-model-confusion-matrix" class="model-table-empty" aria-live="polite"></div></div>
-                <div><h3>Selected model class-wise results</h3><div id="selected-model-class-metrics" class="model-table-empty" aria-live="polite"></div></div>
-              </div>
-              <p class="model-disclaimer">Configuration comparisons use the same grouped, stratified synthetic holdout. The selected configuration is an experimental choice, not external forensic validation.</p>
-            </div>
-          </article>
 
           <article class="surface recent-card">
             <div class="section-heading"><div><p class="eyebrow">CASEWORK LOG</p><h2>Recent assessments</h2></div><button class="text-button" type="button" data-view="history">View history <span aria-hidden="true">→</span></button></div>
@@ -250,11 +401,50 @@
         </section>
 
         <section id="view-history" class="page-view hidden">
-          <div class="page-heading heading-with-action"><div><p class="eyebrow">RECORDS & REVIEW</p><h1>Assessment history</h1><p class="muted">Review saved evidence handling assessments in your workspace.</p></div>
+          <div class="page-heading heading-with-action"><div><p class="eyebrow">RECORDS & REVIEW</p><h1>Results & assessment history</h1><p class="muted">Review saved evidence handling assessments in your workspace.</p></div>
             <label class="filter-field"><span>Risk category</span><select id="risk-filter"><option value="">All categories</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
           </div>
           <article class="surface history-card"><div id="history-content"></div></article>
           <p class="page-footnote">Records are private to your account. Risk indicators are preliminary and do not confirm contamination.</p>
+        </section>
+
+        <section id="view-research" class="page-view hidden">
+          <div class="page-heading">
+            <p class="eyebrow">MODEL & RESEARCH LAB</p>
+            <h1>Experimental methods, clearly separated</h1>
+            <p class="muted">Review the existing model evaluation, tracked comparisons and methodology. Experimental results use synthetic data and do not replace the primary rule-based assessment.</p>
+          </div>
+          <article class="surface model-evaluation-card">
+            <div class="section-heading"><div><p class="eyebrow">MODEL OVERVIEW · PERFORMANCE METRICS · DATASET</p><h2>Logistic Regression — Model Evaluation</h2></div><span id="model-status" class="model-status">Experimental — synthetic data</span></div>
+            <p id="model-scope" class="model-scope">Experimental metrics are calculated from a purpose-built synthetic dataset, not observed forensic outcomes.</p>
+            <p class="model-module-note">Logistic Regression is implemented as a separate experimental module and does not change the primary rule-based assessment.</p>
+            <div class="model-meta-grid">
+              <div><span>Training dataset source</span><strong id="model-source">Synthetic demonstration dataset</strong></div>
+              <div><span>Training records</span><strong id="model-training-count">—</strong></div>
+              <div><span>Testing records</span><strong id="model-testing-count">—</strong></div>
+              <div><span>Model status</span><strong id="model-status-detail">Experimental — synthetic data</strong></div>
+            </div>
+            <div class="model-metric-grid">
+              <div class="model-metric"><span>Accuracy</span><strong id="model-accuracy" class="is-unavailable">Not available</strong></div>
+              <div class="model-metric"><span>Macro precision</span><strong id="model-precision" class="is-unavailable">Not available</strong></div>
+              <div class="model-metric"><span>Macro recall</span><strong id="model-recall" class="is-unavailable">Not available</strong></div>
+              <div class="model-metric"><span>Macro F1-score</span><strong id="model-f1" class="is-unavailable">Not available</strong></div>
+            </div>
+            <div class="model-detail-grid">
+              <div><h3>Confusion matrix</h3><div id="model-confusion-matrix" class="model-table-empty" aria-live="polite"></div></div>
+              <div><h3>Class-wise results</h3><div id="model-class-metrics" class="model-table-empty" aria-live="polite"></div></div>
+            </div>
+            <p class="model-disclaimer">Experimental Logistic Regression holdout evaluation on synthetic data only. Simulated labels and metrics are not observed contamination outcomes and do not establish real-world forensic performance. The rule-based assessment remains the primary screening mechanism.</p>
+            <div class="comparison-section">
+              <div class="section-heading"><div><p class="eyebrow">ALGORITHM COMPARISON</p><h3>Tracked experiments</h3></div><span id="selected-model-label" class="model-status">Selected model: unavailable</span></div>
+              <div id="experiment-comparison-table" class="model-table-empty" aria-live="polite"></div>
+              <div class="model-detail-grid comparison-detail-grid">
+                <div><h3>Selected model confusion matrix</h3><div id="selected-model-confusion-matrix" class="model-table-empty" aria-live="polite"></div></div>
+                <div><h3>Selected model class-wise results</h3><div id="selected-model-class-metrics" class="model-table-empty" aria-live="polite"></div></div>
+              </div>
+              <p class="model-disclaimer">Configuration comparisons use the same grouped, stratified synthetic holdout. The selected configuration is an experimental choice, not external forensic validation.</p>
+            </div>
+          </article>
         </section>
       </main>
     </div>
